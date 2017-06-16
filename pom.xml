@@ -21,7 +21,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
-		<mainClass>eu.clarus.secadm.Main</mainClass>
+		<mainClass>eu.clarussecure.secadm.Main</mainClass>
 		<name>CLARUS-SecAdm</name>
     </properties>
 	<build>
