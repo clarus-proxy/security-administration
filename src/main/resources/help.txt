@@ -1,0 +1,58 @@
+USAGE
+
+	clarus-adm <command> <arguments> <options>
+
+Whatever the command, the security manager must be identified (see options). The user is prompted for the credentials if they are not specified.
+
+COMMANDS
+
+user_repo < protocol > < credentials > [ < uri > ] [-l, --login <name> [-p, --password <passwd> | -i <identityfile>]]
+	Update the configuration of the user repository. Two kinds of user repository are supported:
+		- embedded
+		- ldap
+	If the < protocol > parameter is defined as “embedded” the parameters < uri > is not needed. If the protocol is defined as “ldap” it is mandatory.
+
+list_csp [-l, --login <name> [-p, --password <passwd> | -i <identityfile>]]
+	List the CSPs configured inside the CLARUS proxy
+
+register_csp < name > < credentials > < base_endpoint > [-l, --login <name> [-p, -- password <passwd> | -i <identityfile>]]
+	Register a CSP to the CLARUS proxy
+
+delete_csp < csp_id > [-l, --login <name> [-p, --password <passwd> | -i <identityfile>]]
+	Delete a CSP identified by the parameter < csp_id > from the CLARUS proxy
+
+disable_csp < csp_id > [-l, --login <name> [-p, --password <passwd> | -i <identityfile>]]
+	Disable a CSP identified by the parameter < csp_id >
+
+enable_csp < cspId > [-l, --login <name> [-p, --password <passwd> | -i <identityfile>]]
+	Enable a CSP identified by the parameter < csp_id >
+
+failover < param > [ < masterNode > ] [-l, --login <name> [-p, --password <passwd> | -i <identityfile>]]
+	Enable or disable the failover mode of the CLARUS proxy using the < param > as a Boolean. If the failover mode is enabled, the address of the master node will be declared as a second parameter. If there is not any, the CLARUS proxy will be considered as the master node.
+
+list_modules [-l, --login <name> [-p, --password <passwd> | -i <identityfile>]]
+	List all the modules with an id, version and a name.
+
+delete_module < module_id > [-l, --login <name> [-p, --password <passwd> | -i <identityfile>]]
+	Delete the module identified by < module_id >
+
+register_module < module_file > [-l, --login <name> [-p, --password <passwd> | -i <identityfile>]]
+	Register a new CLARUS module using the < module_file > parameter as an input.
+
+update_module < module_id > < moduleFile > [-l, --login <name> [-p, --password <passwd> | -i <identityfile>]]
+	Update a CLARUS module identified by < module_id > using the < moduleFile > parameter as an input. The module version will be checked and the most recent module will be kept. The other one will be deleted.
+
+user_auth_module < auth_module_configuration_file > [-l, --login <name> [-p, --password <passwd> | -i <identityfile>]]
+	Update the configuration of the user auth_module_configuration_file > as an input.
+
+OPTIONS
+
+-h, --help
+	Shows a short usage summary
+
+-l, --login <name>
+	Specifies the user to log in as on the CLARUS system.
+-p, --password <passwd>
+	Specifies the password of the user to log in on the CLARUS system.
+-i <identityfile>
+	Specifies the file from which the identity (private key) for CLARUS authentication is read.
