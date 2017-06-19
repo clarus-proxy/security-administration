@@ -5,6 +5,7 @@
  */
 package eu.clarussecure.secadm;
 
+import eu.clarussecure.proxy.access.SimpleMongoUserAccess;
 import eu.clarussecure.secadm.dao.CLARUSConfDAO;
 
 /**
@@ -26,6 +27,21 @@ public class RegisterModule extends Command{
 	}
 
 	public CommandReturn execute() throws CommandExecutionException{
+        // Authenticate the user
+        SimpleMongoUserAccess auth = SimpleMongoUserAccess.getInstance();
+        if(!auth.identify(this.loginID)){
+            throw new CommandExecutionException("The user '" + this.loginID + "' was not found as a registered user.");
+        }
+        
+        if(!auth.authenticate(this.loginID, this.password)){
+            throw new CommandExecutionException("The authentication of the user '" + this.loginID + "' failed.");
+        }
+        
+        // Check is the user is authroized to execute this command
+        if(!auth.userProfile(this.loginID).equals("admin")){
+            throw new CommandExecutionException("The user '" + this.loginID + "' is not authorized to execute this command.");
+        }
+        
 		// FIXME - Change the implementation to meet the refined requirements
 		CLARUSConfDAO dao = CLARUSConfDAO.getInstance();
 		int module = dao.registerModule(this.moduleFilename, this.moduleVersion);
