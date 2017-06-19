@@ -16,11 +16,10 @@ import com.mongodb.client.model.Sorts;
 
 import org.bson.Document;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
 import java.util.Set;
 import java.util.HashSet;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -29,14 +28,14 @@ import java.util.HashSet;
 public class CLARUSConfDAO{
 	// Singleton implementation
 	private static CLARUSConfDAO instance = null;
-	private Gson g;
-	private MongoDatabase db;
-	private MongoClient mongoClient;
+	private final MongoDatabase db;
+	private final MongoClient mongoClient;
 	private int instancesNumber;
 
 	private CLARUSConfDAO(){
-		// Create the GsonBuilder Object
-		this.g = new GsonBuilder().setPrettyPrinting().create();
+        // Correctly configure the log level
+        Logger mongoLogger = Logger.getLogger( "org.mongodb.driver" );
+        mongoLogger.setLevel(Level.SEVERE); 
 		// Create a new client connecting to "localhost" on port 
 		this.mongoClient = new MongoClient("localhost", 27017);
 
@@ -109,7 +108,7 @@ public class CLARUSConfDAO{
 	}
 
 	public Set<String> listCSP(){
-		Set<String> res = new HashSet<String>();
+		Set<String> res = new HashSet<>();
 		MongoCollection<Document> collection = db.getCollection("config");
 
 		// Find all the CSPs
@@ -232,7 +231,7 @@ public class CLARUSConfDAO{
 
 		// Get the version from the DB
 		MongoCursor<Document> cursor = collection.find(and(eq("key", "clarus-module"), eq("moduleID", moduleID))).iterator();
-		int oldVersion = 0;
+		int oldVersion;
 		Document module = null;
 
 		if (cursor.hasNext()){
