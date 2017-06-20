@@ -1,14 +1,5 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package eu.clarussecure.secadm;
 
-/**
- *
- * @author diegorivera
- */
 public abstract class Command{
 	// All the commands of the Security Administrator use the login, Password and/or Identify Files
 	protected String loginID = "";
