@@ -9,6 +9,7 @@ public class Help extends Command{
 		parseCommandArgs(args);
 	}
 
+    @Override
 	public CommandReturn execute() throws CommandExecutionException{
 		// Prepare the output
 		String data = "";
@@ -29,6 +30,7 @@ public class Help extends Command{
 		return cr;
 	}
 
+    @Override
 	public boolean parseCommandArgs(String[] args) throws CommandParserException{
 		// Default case, nothing to do here
 

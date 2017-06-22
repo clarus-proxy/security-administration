@@ -15,6 +15,7 @@ public class UserAuthModule extends Command{
 		parseCommandArgs(args);
 	}
 
+    @Override
 	public CommandReturn execute() throws CommandExecutionException{
         // Authenticate the user
         SimpleMongoUserAccess auth = SimpleMongoUserAccess.getInstance();
@@ -40,6 +41,7 @@ public class UserAuthModule extends Command{
 		return cr;
 	}
 
+    @Override
 	public boolean parseCommandArgs(String[] args) throws CommandParserException{
 		// First, sanity check
 		if (!args[0].toLowerCase().equals("user_auth_module"))

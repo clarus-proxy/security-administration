@@ -18,6 +18,7 @@ public class RegisterCSP extends Command{
 		parseCommandArgs(args);
 	}
 
+    @Override
 	public CommandReturn execute() throws CommandExecutionException{
         // Authenticate the user
         SimpleMongoUserAccess auth = SimpleMongoUserAccess.getInstance();
@@ -46,6 +47,7 @@ public class RegisterCSP extends Command{
 		return cr;
 	}
 
+    @Override
 	public boolean parseCommandArgs(String[] args) throws CommandParserException{
 		// First, sanity check
 		if (!args[0].toLowerCase().equals("register_csp"))
