@@ -20,6 +20,7 @@ public class RegisterModule extends Command{
 	// this.identityFilePath (String)
 	protected String moduleFilename;
 	protected String moduleVersion;
+    protected String moduleName;
     
     // Credentials for the ssh connection
     private final String scpHostName = "";
@@ -70,7 +71,7 @@ public class RegisterModule extends Command{
 
             // Insert the register into the admin database.
             CLARUSConfDAO dao = CLARUSConfDAO.getInstance();
-            module = dao.registerModule(this.moduleFilename, this.moduleVersion);
+            module = dao.registerModule(this.moduleFilename, this.moduleVersion, this.moduleName);
             dao.deleteInstance();
         } catch (JSchException | SftpException | IOException e){
             // TODO
@@ -96,6 +97,15 @@ public class RegisterModule extends Command{
 		} catch (IndexOutOfBoundsException e){
 			throw new CommandParserException("The field 'moduleFile' was not given and it is required.");
 		}
+
+        // EXTRA ARGUMENT - The name of the module to be stored in the centralized database
+		// Third, parse the name of the module
+		try{
+			this.moduleName = args[2];
+		} catch (IndexOutOfBoundsException e){
+			throw new CommandParserException("The field 'moduleName' was not given and it is required.");
+		}
+
 
 		// TODO - Extract the module version from the file!
 		this.moduleVersion = "1.0";

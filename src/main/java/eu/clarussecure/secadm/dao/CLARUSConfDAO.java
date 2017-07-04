@@ -173,7 +173,7 @@ public class CLARUSConfDAO{
 		return modified > 0;
 	}
 
-	public int registerModule(String modulePath, String verStr){
+	public int registerModule(String modulePath, String verStr, String moduleName){
 		MongoCollection<Document> collection = db.getCollection("config");
 
 		// Find the highest Module ID
@@ -199,6 +199,7 @@ public class CLARUSConfDAO{
 		doc.append("moduleID", moduleID);
 		doc.append("file", modulePath); // Replace this with the BLOB????
 		doc.append("version", version);
+        doc.append("name", moduleName);
 		doc.append("enabled", false);
 
 		// Insert the document
