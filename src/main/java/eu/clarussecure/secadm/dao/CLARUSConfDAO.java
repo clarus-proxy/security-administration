@@ -50,6 +50,25 @@ public class CLARUSConfDAO{
 			CLARUSConfDAO.instance = new CLARUSConfDAO();
 		return CLARUSConfDAO.instance;
 	}
+    
+    public boolean registerProtocol(String protocolName, String protocolSchema){
+        MongoCollection<Document> collection = db.getCollection("protocols");
+        
+        Document doc = new Document("protocolName", protocolName);
+        doc.append("protocolSchema", protocolSchema);
+
+		// Insert or update the document
+		return collection.replaceOne(eq("key", "userrepo"), doc, new UpdateOptions().upsert(true)).wasAcknowledged();
+    }
+    
+    public boolean deleteProtocol(String protocolName){
+		MongoCollection<Document> collection = db.getCollection("protocols");
+
+		// Find the Protocol Name to delete
+		long deleted = collection.deleteOne(eq("protocolName", protocolName)).getDeletedCount();
+
+		return deleted > 0;
+    }
 
 	public boolean setUserRepo(String proto, String cred, String uri){
 		MongoCollection<Document> collection = db.getCollection("config");

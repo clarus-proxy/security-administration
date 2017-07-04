@@ -57,6 +57,13 @@ public class CommandParser{
 			case "user_auth_module":
 				com = new UserAuthModule(command);
 				break;
+            // non-standard commands
+            case "register_protocol":
+                com = new RegisterProtocol(command);
+                break;
+            case "delete_protocol":
+                com = new DeleteProtocol(command);
+                break;
 			default:
 				throw new CommandParserException("Unrecognized command '" + command[0] + "'");
 		}
