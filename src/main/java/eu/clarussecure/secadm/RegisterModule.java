@@ -1,16 +1,7 @@
 package eu.clarussecure.secadm;
 
-import com.jcraft.jsch.Channel;
-import com.jcraft.jsch.ChannelSftp;
-import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.JSchException;
-import com.jcraft.jsch.Session;
-import com.jcraft.jsch.SftpException;
-import java.io.IOException;
 import eu.clarussecure.proxy.access.SimpleMongoUserAccess;
 import eu.clarussecure.secadm.dao.CLARUSConfDAO;
-import java.io.File;
-import java.io.FileInputStream;
 
 public class RegisterModule extends Command{
 	// TODO - Put other data from the command as fields of the object
@@ -22,12 +13,17 @@ public class RegisterModule extends Command{
 	protected String moduleVersion;
     protected String moduleName;
     
-    // Credentials for the ssh connection
-    private final String scpHostName = "";
-    private final String scpUserName = "";
-    private final String scpPassword = "";
-    private final String scpRemotePath = "";
-    private final int scpPort = 22;
+    // Data of the SSH server to copy the file
+    private final String scpHostName = "157.159.100.224";
+    private final String scpUserName = "notts";
+    private final String scpRemotePath = "~";
+    
+    // Path of the "id_rsa" file containing the private key to be used for identification
+    private final String scpIdentityFilePath = "/Users/diegorivera/.ssh/id_rsa";
+    // Passphrase of the "id_rsa" file
+    // It can be set manually here or obtained from the console by invoking
+    // this.scpIdentityFilePassphrase = new String(System.console().readPassword());
+    private String scpIdentityFilePassphrase = "";
 
 	
 	public RegisterModule(String[] args) throws CommandParserException{
@@ -52,36 +48,33 @@ public class RegisterModule extends Command{
         }
         
         int module = -1;
+        CommandReturn cr = null;
+        
+        // Create the FileTrnasfer object
+        FileTransfer transfer = FileTransfer.getInstance("scp");
+        // Ask for the password to the user
+        System.out.print(this.scpHostName + "'s identity file password?");
+        this.scpIdentityFilePassphrase = new String(System.console().readPassword());
+        // Initialize the required data
+        transfer.init(this.scpUserName, this.scpHostName, this.scpIdentityFilePath, this.scpIdentityFilePassphrase);
+        transfer.setSSHPort(24601);
+        // Transfer the file
         try{
-            JSch jsch = new JSch();
-            Session session  = jsch.getSession(this.scpUserName, this.scpHostName, this.scpPort);
-            session.setPassword(this.scpPassword);
-            java.util.Properties config = new java.util.Properties();
-            config.put("StrictHostKeyChecking", "no");
-            session.setConfig(config);
-            session.connect();
-            
-            Channel channel = session.openChannel("sftp");
-            channel.connect();
-            ((ChannelSftp) channel).cd(this.scpRemotePath);
-            File f = new File(this.moduleFilename);
-            ((ChannelSftp) channel).put(new FileInputStream(f), f.getName());
-            channel.disconnect();
-            session.disconnect();
+            transfer.tranferFile(this.moduleFilename, this.scpRemotePath);
 
             // Insert the register into the admin database.
             CLARUSConfDAO dao = CLARUSConfDAO.getInstance();
             module = dao.registerModule(this.moduleFilename, this.moduleVersion, this.moduleName);
             dao.deleteInstance();
-        } catch (JSchException | SftpException | IOException e){
-            // TODO
-            e.printStackTrace();
+            // This command SHOULD return the Module id
+            // In general, the entry in the database should contain all the data gathered and a "enabled" flag
+
+            cr = new CommandReturn(0, "The Module was created with ID " + module);
+        } catch (CommandExecutionException e){
+            cr = new CommandReturn(1, "There was an error transfering the file. The module has not been registered");
+            e.printStackTrace(); // Delete this line when deploying
         }
-        
-        // This command SHOULD return the Module id
-        // In general, the entry in the database should contain all the data gathered and a "enabled" flag
-        
-		CommandReturn cr = new CommandReturn(0, "The Module was created with ID " + module);
+
 		return cr;
 	}
 
