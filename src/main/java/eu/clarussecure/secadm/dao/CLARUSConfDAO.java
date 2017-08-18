@@ -127,7 +127,8 @@ public class CLARUSConfDAO{
 		// Iterate the results, converting them to JSON
 		while(cursor.hasNext()){
 			Document d = cursor.next();
-			res.add(d.toJson());
+            String format= "CSP: ID = %d\n\tname = %s\n\tcredentials = %s\n\tendpoint = %s\n\tenabled = %s";
+			res.add(String.format(format, d.getInteger("cspID"), d.getString("name"), d.getString("credentials"), d.getString("endpoint"), d.getBoolean("enabled").toString()));
 		}
 
 		return res;
@@ -209,7 +210,7 @@ public class CLARUSConfDAO{
 	}
 
 	public Set<String> listModules(){
-		Set<String> res = new HashSet<String>();
+		Set<String> res = new HashSet<>();
 		MongoCollection<Document> collection = db.getCollection("config");
 
 		// Find all the Modules
@@ -218,7 +219,8 @@ public class CLARUSConfDAO{
 		// Iterate the results, converting them to JSON
 		while(cursor.hasNext()){
 			Document d = cursor.next();
-			res.add(d.toJson());
+            String format = "Module: ID = %d\n\tName = %s\n\tFile = %s\n\tVersion = %d\n\tEnabled = %s";
+			res.add(String.format(format, d.getInteger("moduleID"), d.getString("name"), d.getString("file"), d.getInteger("version"), d.getBoolean("enabled").toString()));
 		}
 
 		return res;
@@ -264,6 +266,25 @@ public class CLARUSConfDAO{
 
 		return 1;
 	}
+    
+    public int getModuleVersion(int moduleID){
+		MongoCollection<Document> collection = db.getCollection("config");
+
+		// Find all the Modules
+		MongoCursor<Document> cursor = collection.find(and(eq("key", "clarus-module"), eq("moduleID", moduleID))).iterator();
+        
+        Document module = null;
+        
+        if(cursor.hasNext()){
+            module = cursor.next();
+        }
+        
+        if(module == null){
+            return -1;
+        }
+        
+        return module.getInteger("version");
+    }
 	
 	public boolean userAuthModule(String pathname){
 		MongoCollection<Document> collection = db.getCollection("config");

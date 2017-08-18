@@ -49,7 +49,7 @@ public class UserAuthModule extends Command{
 
 		// Second, parse the filename of the user file configuration
 		try{
-			this.userAuthConfFile = args[2];
+			this.userAuthConfFile = args[1];
 		} catch (IndexOutOfBoundsException e){
 			throw new CommandParserException("The field 'auth_module_configuration_file' was not given and it is required.");
 		}

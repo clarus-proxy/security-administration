@@ -12,6 +12,18 @@ public class UpdateModule extends Command{
 	protected int moduleID;
 	protected String moduleFilename;
 	protected String newModuleVersion;
+    
+    // Data of the SSH server to copy the file
+    private final String scpHostName = "157.159.100.224";
+    private final String scpUserName = "notts";
+    private final String scpRemotePath = "~";
+    
+    // Path of the "id_rsa" file containing the private key to be used for identification
+    private final String scpIdentityFilePath = "/Users/diegorivera/.ssh/id_rsa";
+    // Passphrase of the "id_rsa" file
+    // It can be set manually here or obtained from the console by invoking
+    // this.scpIdentityFilePassphrase = new String(System.console().readPassword());
+    private String scpIdentityFilePassphrase = "";
 	
 	public UpdateModule(String[] args) throws CommandParserException{
 		parseCommandArgs(args);
@@ -36,26 +48,63 @@ public class UpdateModule extends Command{
         
 		// TODO: The version of the new module should be checked
 		// Only the most recent module should be kept
+        // Remove the points in the new version to correctly compare versions
+        this.newModuleVersion = this.newModuleVersion.replace(".", "");
 
-		// This command should search the Module on the DB and set the flag to "disabled"
-		CLARUSConfDAO dao = CLARUSConfDAO.getInstance();
-		int success = dao.updateModule(this.moduleID, this.moduleFilename, this.newModuleVersion);
-		dao.deleteInstance();
+        // This command should search the Module on the DB and set the flag to "disabled"
+        int success = 0;
+        CommandReturn cr = null;
 
 		int retValue = 0;
 		String retMessage = "The Module with ID " + this.moduleID + " was successfully updated.";
-
-		if (success < 0){
+        
+        CLARUSConfDAO dao = CLARUSConfDAO.getInstance();
+        int oldVersion = dao.getModuleVersion(this.moduleID);
+        int newVersion = Integer.parseInt(this.newModuleVersion);
+        
+        if (oldVersion < 0){
+            // Error, the moduleID could not be found
 			retValue = 3;
 			retMessage = "The Module with ID " + this.moduleID + " could not be found.";
-		}
+            cr = new CommandReturn(retValue, retMessage);
+            return cr;
+        }
+        
+        if (oldVersion < newVersion){
+            success = dao.updateModule(this.moduleID, this.moduleFilename, this.newModuleVersion);
+            dao.deleteInstance();
+            // Create the FileTrnasfer object
+            FileTransfer transfer = FileTransfer.getInstance("scp");
+            // Ask for the password to the user
+            System.out.print(this.scpHostName + "'s identity file password?");
+            this.scpIdentityFilePassphrase = new String(System.console().readPassword());
+            // Initialize the required data
+            transfer.init(this.scpUserName, this.scpHostName, this.scpIdentityFilePath, this.scpIdentityFilePassphrase);
+            transfer.setSSHPort(24601);
+            // Transfer the file
+            try{
+                transfer.tranferFile(this.moduleFilename, this.scpRemotePath);
+            }catch (CommandExecutionException e){
+                cr = new CommandReturn(1, "There was an error transfering the file. The module has not been registered");
+                e.printStackTrace(); // Delete this line when deploying
+                return cr;
+            }
 
-		if (success > 0){
+            if (success < 0){
+                retValue = 3;
+                retMessage = "The Module with ID " + this.moduleID + " could not be found.";
+            }
+
+            if (success > 0){
+                retValue = 4;
+                retMessage = "The Module with ID " + this.moduleID + " has higher version already registered.";
+            }
+        } else {
 			retValue = 4;
 			retMessage = "The Module with ID " + this.moduleID + " has higher version already registered.";
-		}
+        }
 
-		CommandReturn cr = new CommandReturn(retValue, retMessage);
+        cr = new CommandReturn(retValue, retMessage);
 		return cr;
 	}
 
@@ -81,6 +130,7 @@ public class UpdateModule extends Command{
 			throw new CommandParserException("The field 'moduleFile' was not given and it is required.");
 		}
 
+        this.newModuleVersion = "1.1";
 
 		// Parse the creentials of the admin this function asks for any missing information
 		this.parseCredentials(args);
