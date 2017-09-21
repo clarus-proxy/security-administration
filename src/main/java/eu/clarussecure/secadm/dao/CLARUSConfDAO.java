@@ -8,11 +8,15 @@ import com.mongodb.client.model.UpdateOptions;
 import static com.mongodb.client.model.Updates.*;
 import static com.mongodb.client.model.Filters.*;
 import com.mongodb.client.model.Sorts;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 import org.bson.Document;
 
 import java.util.Set;
 import java.util.HashSet;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -23,15 +27,22 @@ public class CLARUSConfDAO{
 	private final MongoClient mongoClient;
 	private int instancesNumber;
 
+    private String confFile = "/etc/clarus/clarus-mgmt-tools.conf";
+    private String mongoDBHostname = "localhost"; // Default server
+    private int mongoDBPort = 27017; // Default port
+    private String clarusDBName = "CLARUS"; // Default DB name
+
 	private CLARUSConfDAO(){
         // Correctly configure the log level
         Logger mongoLogger = Logger.getLogger( "org.mongodb.driver" );
         mongoLogger.setLevel(Level.SEVERE); 
-		// Create a new client connecting to "localhost" on port 
-		this.mongoClient = new MongoClient("localhost", 27017);
+        // Open the configuraiton file to extract the information from it.
+        this.processConfigurationFile();
+        // Create a new client connecting to "localhost" on port 
+        this.mongoClient = new MongoClient(this.mongoDBHostname, this.mongoDBPort);
 
 		// Get the database (will be created if not present)
-		this.db = mongoClient.getDatabase("CLARUS");
+		this.db = mongoClient.getDatabase(this.clarusDBName);
 
 		this.instancesNumber++;
 	}
@@ -297,6 +308,24 @@ public class CLARUSConfDAO{
 
 		return modified > 0;
 	}
+
+    private void processConfigurationFile() throws RuntimeException {
+        // Open the file in read-only mode. This will avoid any permission problem
+        try {
+            // Read all the lines and join them in a single string
+            List<String> lines = Files.readAllLines(Paths.get(this.confFile));
+            String content = lines.stream().reduce("", (a, b) -> a + b);
+
+            // Use the bson document parser to extract the info
+            Document doc = Document.parse(content);
+            this.mongoDBHostname = doc.getString("CLARUS_metadata_db_hostname");
+            this.mongoDBPort = doc.getInteger("CLARUS_metadata_db_port");
+            this.clarusDBName = doc.getString("CLARUS_metadata_db_name");
+        } catch (IOException e) {
+            throw new RuntimeException("CLARUS configuration file could not be processed", e);
+        }
+    }
+
 
 	/*
 	// Get the collection of BSON documents that contain the configurations
