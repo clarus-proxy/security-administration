@@ -53,7 +53,7 @@ public class RegisterProtocol extends Command{
 
 		// Second, parse the name of the CSP
 		try{
-			this.protocolName = args[1];
+			this.protocolName = args[1].toLowerCase();
 		} catch (IndexOutOfBoundsException e){
 			throw new CommandParserException("The field 'protocolName' was not given and it is required.");
 		}
