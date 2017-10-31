@@ -20,294 +20,306 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class CLARUSConfDAO{
-	// Singleton implementation
-	private static CLARUSConfDAO instance = null;
-	private final MongoDatabase db;
-	private final MongoClient mongoClient;
-	private int instancesNumber;
+public class CLARUSConfDAO {
+    // Singleton implementation
+    private static CLARUSConfDAO instance = null;
+    private final MongoDatabase db;
+    private final MongoClient mongoClient;
+    private int instancesNumber;
 
     private String confFile = "/etc/clarus/clarus-mgmt-tools.conf";
     private String mongoDBHostname = "localhost"; // Default server
     private int mongoDBPort = 27017; // Default port
     private String clarusDBName = "CLARUS"; // Default DB name
 
-	private CLARUSConfDAO(){
+    private CLARUSConfDAO() {
         // Correctly configure the log level
-        Logger mongoLogger = Logger.getLogger( "org.mongodb.driver" );
-        mongoLogger.setLevel(Level.SEVERE); 
+        Logger mongoLogger = Logger.getLogger("org.mongodb.driver");
+        mongoLogger.setLevel(Level.SEVERE);
         // Open the configuraiton file to extract the information from it.
         this.processConfigurationFile();
         // Create a new client connecting to "localhost" on port 
         this.mongoClient = new MongoClient(this.mongoDBHostname, this.mongoDBPort);
 
-		// Get the database (will be created if not present)
-		this.db = mongoClient.getDatabase(this.clarusDBName);
+        // Get the database (will be created if not present)
+        this.db = mongoClient.getDatabase(this.clarusDBName);
 
-		this.instancesNumber++;
-	}
+        this.instancesNumber++;
+    }
 
-	public void deleteInstance(){
-		this.instancesNumber--;
+    public void deleteInstance() {
+        this.instancesNumber--;
 
-		if(this.instancesNumber <= 0){
-			this.mongoClient.close();
-			CLARUSConfDAO.instance = null;
-		}
-	}
+        if (this.instancesNumber <= 0) {
+            this.mongoClient.close();
+            CLARUSConfDAO.instance = null;
+        }
+    }
 
-	public static CLARUSConfDAO getInstance(){
-		if (CLARUSConfDAO.instance == null)
-			CLARUSConfDAO.instance = new CLARUSConfDAO();
-		return CLARUSConfDAO.instance;
-	}
-    
-    public boolean registerProtocol(String protocolName, String protocolSchema){
+    public static CLARUSConfDAO getInstance() {
+        if (CLARUSConfDAO.instance == null)
+            CLARUSConfDAO.instance = new CLARUSConfDAO();
+        return CLARUSConfDAO.instance;
+    }
+
+    public boolean registerProtocol(String protocolName, String protocolSchema) {
         MongoCollection<Document> collection = db.getCollection("protocols");
-        
+
         Document doc = new Document("protocolName", protocolName);
         doc.append("protocolSchema", protocolSchema);
 
-		// Insert or update the document
-		return collection.replaceOne(eq("key", "userrepo"), doc, new UpdateOptions().upsert(true)).wasAcknowledged();
-    }
-    
-    public boolean deleteProtocol(String protocolName){
-		MongoCollection<Document> collection = db.getCollection("protocols");
-
-		// Find the Protocol Name to delete
-		long deleted = collection.deleteOne(eq("protocolName", protocolName)).getDeletedCount();
-
-		return deleted > 0;
+        // Insert or update the document
+        return collection.replaceOne(eq("key", "userrepo"), doc, new UpdateOptions().upsert(true)).wasAcknowledged();
     }
 
-	public boolean setUserRepo(String proto, String cred, String uri){
-		MongoCollection<Document> collection = db.getCollection("config");
+    public boolean deleteProtocol(String protocolName) {
+        MongoCollection<Document> collection = db.getCollection("protocols");
 
-		// FIXME - This implementation is provisory
-		Document doc = new Document("key", "userrepo");
-		doc.append("protocol", proto);
-		doc.append("credentials", cred);
-		doc.append("uri", uri);
+        // Find the Protocol Name to delete
+        long deleted = collection.deleteOne(eq("protocolName", protocolName)).getDeletedCount();
 
-		// Insert or update the document
-		long modified = collection.replaceOne(eq("key", "userrepo"), doc, new UpdateOptions().upsert(true)).getModifiedCount();
+        return deleted > 0;
+    }
 
-		return modified > 0;
-	}
+    public boolean setUserRepo(String proto, String cred, String uri) {
+        MongoCollection<Document> collection = db.getCollection("config");
 
-	public int registerCSP(String name, String cred, String endpoint){
-		MongoCollection<Document> collection = db.getCollection("config");
+        // FIXME - This implementation is provisory
+        Document doc = new Document("key", "userrepo");
+        doc.append("protocol", proto);
+        doc.append("credentials", cred);
+        doc.append("uri", uri);
 
-		// Find the highest CSP ID
-		int cspID = 0;
-		MongoCursor<Document> cursor = collection.find(eq("key", "csp")).sort(Sorts.descending("cspID")).limit(1).iterator();
+        // Insert or update the document
+        long modified = collection.replaceOne(eq("key", "userrepo"), doc, new UpdateOptions().upsert(true))
+                .getModifiedCount();
 
+        return modified > 0;
+    }
 
-		while(cursor.hasNext()){
-			Document d = cursor.next();
-			if (d == null)
-				break;
+    public int registerCSP(String name, String cred, String endpoint) {
+        MongoCollection<Document> collection = db.getCollection("config");
 
-			cspID = d.getInteger("cspID");
-		}
+        // Find the highest CSP ID
+        int cspID = 0;
+        MongoCursor<Document> cursor = collection.find(eq("key", "csp")).sort(Sorts.descending("cspID")).limit(1)
+                .iterator();
 
-		cspID++;
+        while (cursor.hasNext()) {
+            Document d = cursor.next();
+            if (d == null)
+                break;
 
-		// FIXME - This implementation is provisory
-		Document doc = new Document("key", "csp");
-		doc.append("cspID", cspID);
-		doc.append("name", name);
-		doc.append("credentials", cred);
-		doc.append("endpoint", endpoint);
-		doc.append("enabled", false);
+            cspID = d.getInteger("cspID");
+        }
 
-		// Insert the document
-		collection.insertOne(doc);
+        cspID++;
 
-		return cspID;
-	}
+        // FIXME - This implementation is provisory
+        Document doc = new Document("key", "csp");
+        doc.append("cspID", cspID);
+        doc.append("name", name);
+        doc.append("credentials", cred);
+        doc.append("endpoint", endpoint);
+        doc.append("enabled", false);
 
-	public Set<String> listCSP(){
-		Set<String> res = new HashSet<>();
-		MongoCollection<Document> collection = db.getCollection("config");
+        // Insert the document
+        collection.insertOne(doc);
 
-		// Find all the CSPs
-		MongoCursor<Document> cursor = collection.find(eq("key", "csp")).sort(Sorts.descending("cspID")).iterator();
+        return cspID;
+    }
 
-		// Iterate the results, converting them to JSON
-		while(cursor.hasNext()){
-			Document d = cursor.next();
-            String format= "CSP: ID = %d\n\tname = %s\n\tcredentials = %s\n\tendpoint = %s\n\tenabled = %s";
-			res.add(String.format(format, d.getInteger("cspID"), d.getString("name"), d.getString("credentials"), d.getString("endpoint"), d.getBoolean("enabled").toString()));
-		}
+    public Set<String> listCSP() {
+        Set<String> res = new HashSet<>();
+        MongoCollection<Document> collection = db.getCollection("config");
 
-		return res;
-	}
+        // Find all the CSPs
+        MongoCursor<Document> cursor = collection.find(eq("key", "csp")).sort(Sorts.descending("cspID")).iterator();
 
-	public boolean deleteCSP(int cspID){
-		MongoCollection<Document> collection = db.getCollection("config");
+        // Iterate the results, converting them to JSON
+        while (cursor.hasNext()) {
+            Document d = cursor.next();
+            String format = "CSP: ID = %d\n\tname = %s\n\tcredentials = %s\n\tendpoint = %s\n\tenabled = %s";
+            res.add(String.format(format, d.getInteger("cspID"), d.getString("name"), d.getString("credentials"),
+                    d.getString("endpoint"), d.getBoolean("enabled").toString()));
+        }
 
-		// Find the CSP to delete
-		long deleted = collection.deleteOne(and(eq("key", "csp"), eq("cspID", cspID))).getDeletedCount();
+        return res;
+    }
 
-		return deleted > 0;
-	}
+    public boolean deleteCSP(int cspID) {
+        MongoCollection<Document> collection = db.getCollection("config");
 
-	public boolean enableCSP(int cspID){
-		MongoCollection<Document> collection = db.getCollection("config");
+        // Find the CSP to delete
+        long deleted = collection.deleteOne(and(eq("key", "csp"), eq("cspID", cspID))).getDeletedCount();
 
-		// Update the document on the DB
-		long updated = collection.updateOne(and(eq("key", "csp"), eq("cspID", cspID)), set("enabled", true)).getModifiedCount();
+        return deleted > 0;
+    }
 
-		return updated > 0;
-	}
+    public boolean enableCSP(int cspID) {
+        MongoCollection<Document> collection = db.getCollection("config");
 
-	public boolean disableCSP(int cspID){
-		MongoCollection<Document> collection = db.getCollection("config");
+        // Update the document on the DB
+        long updated = collection.updateOne(and(eq("key", "csp"), eq("cspID", cspID)), set("enabled", true))
+                .getModifiedCount();
 
-		// Update the document on the DB
-		long updated = collection.updateOne(and(eq("key", "csp"), eq("cspID", cspID)), set("enabled", false)).getModifiedCount();
+        return updated > 0;
+    }
 
-		return updated > 0;
-	}
+    public boolean disableCSP(int cspID) {
+        MongoCollection<Document> collection = db.getCollection("config");
 
-	public boolean setFailoverMode(boolean failover, String masterNode){
-		MongoCollection<Document> collection = db.getCollection("config");
+        // Update the document on the DB
+        long updated = collection.updateOne(and(eq("key", "csp"), eq("cspID", cspID)), set("enabled", false))
+                .getModifiedCount();
 
-		Document doc = new Document("key", "failover");
-		doc.append("enabled", failover);
-		doc.append("masternode", masterNode);
+        return updated > 0;
+    }
 
-		// Insert or update the document
-		long modified = collection.replaceOne(eq("key", "failover"), doc, new UpdateOptions().upsert(true)).getModifiedCount();
+    public boolean setFailoverMode(boolean failover, String masterNode) {
+        MongoCollection<Document> collection = db.getCollection("config");
 
-		return modified > 0;
-	}
+        Document doc = new Document("key", "failover");
+        doc.append("enabled", failover);
+        doc.append("masternode", masterNode);
 
-	public int registerModule(String modulePath, String verStr, String moduleName){
-		MongoCollection<Document> collection = db.getCollection("config");
+        // Insert or update the document
+        long modified = collection.replaceOne(eq("key", "failover"), doc, new UpdateOptions().upsert(true))
+                .getModifiedCount();
 
-		// Find the highest Module ID
-		int moduleID = 0;
-		MongoCursor<Document> cursor = collection.find(eq("key", "clarus-module")).sort(Sorts.descending("moduleID")).limit(1).iterator();
+        return modified > 0;
+    }
 
+    public int registerModule(String modulePath, String verStr, String moduleName) {
+        MongoCollection<Document> collection = db.getCollection("config");
 
-		while(cursor.hasNext()){
-			Document d = cursor.next();
-			if (d == null)
-				break;
+        // Find the highest Module ID
+        int moduleID = 0;
+        MongoCursor<Document> cursor = collection.find(eq("key", "clarus-module")).sort(Sorts.descending("moduleID"))
+                .limit(1).iterator();
 
-			moduleID = d.getInteger("moduleID");
-		}
+        while (cursor.hasNext()) {
+            Document d = cursor.next();
+            if (d == null)
+                break;
 
-		moduleID++;
+            moduleID = d.getInteger("moduleID");
+        }
 
-		// Eliminate dots from the version and parse the integer. This is the comparison is easier
-		int version = Integer.parseInt(verStr.replace(".", ""));
+        moduleID++;
 
-		// FIXME - This implementation is provisory
-		Document doc = new Document("key", "clarus-module");
-		doc.append("moduleID", moduleID);
-		doc.append("file", modulePath); // Replace this with the BLOB????
-		doc.append("version", version);
+        // Eliminate dots from the version and parse the integer. This is the comparison is easier
+        int version = Integer.parseInt(verStr.replace(".", ""));
+
+        // FIXME - This implementation is provisory
+        Document doc = new Document("key", "clarus-module");
+        doc.append("moduleID", moduleID);
+        doc.append("file", modulePath); // Replace this with the BLOB????
+        doc.append("version", version);
         doc.append("name", moduleName);
-		doc.append("enabled", false);
+        doc.append("enabled", false);
 
-		// Insert the document
-		collection.insertOne(doc);
+        // Insert the document
+        collection.insertOne(doc);
 
-		return moduleID;
-	}
+        return moduleID;
+    }
 
-	public Set<String> listModules(){
-		Set<String> res = new HashSet<>();
-		MongoCollection<Document> collection = db.getCollection("config");
+    public Set<String> listModules() {
+        Set<String> res = new HashSet<>();
+        MongoCollection<Document> collection = db.getCollection("config");
 
-		// Find all the Modules
-		MongoCursor<Document> cursor = collection.find(eq("key", "clarus-module")).sort(Sorts.descending("moduleID")).iterator();
+        // Find all the Modules
+        MongoCursor<Document> cursor = collection.find(eq("key", "clarus-module")).sort(Sorts.descending("moduleID"))
+                .iterator();
 
-		// Iterate the results, converting them to JSON
-		while(cursor.hasNext()){
-			Document d = cursor.next();
+        // Iterate the results, converting them to JSON
+        while (cursor.hasNext()) {
+            Document d = cursor.next();
             String format = "Module: ID = %d\n\tName = %s\n\tFile = %s\n\tVersion = %d\n\tEnabled = %s";
-			res.add(String.format(format, d.getInteger("moduleID"), d.getString("name"), d.getString("file"), d.getInteger("version"), d.getBoolean("enabled").toString()));
-		}
+            res.add(String.format(format, d.getInteger("moduleID"), d.getString("name"), d.getString("file"),
+                    d.getInteger("version"), d.getBoolean("enabled").toString()));
+        }
 
-		return res;
-	}
+        return res;
+    }
 
-	public boolean deleteModule(int moduleID){
-		// ToDO
-		MongoCollection<Document> collection = db.getCollection("config");
+    public boolean deleteModule(int moduleID) {
+        // ToDO
+        MongoCollection<Document> collection = db.getCollection("config");
 
-		// Find the CSP to delete
-		long deleted = collection.deleteOne(and(eq("key", "clarus-module"), eq("moduleID", moduleID))).getDeletedCount();
+        // Find the CSP to delete
+        long deleted = collection.deleteOne(and(eq("key", "clarus-module"), eq("moduleID", moduleID)))
+                .getDeletedCount();
 
-		return deleted > 0;
-	}
+        return deleted > 0;
+    }
 
-	public int updateModule(int moduleID, String modulePath, String newVerStr){
-		MongoCollection<Document> collection = db.getCollection("config");
+    public int updateModule(int moduleID, String modulePath, String newVerStr) {
+        MongoCollection<Document> collection = db.getCollection("config");
 
-		// TODO - Get the version of the module and update it ONLY IF the new version is greater
-		int newVersion = Integer.parseInt(newVerStr.replace(".", ""));
+        // TODO - Get the version of the module and update it ONLY IF the new version is greater
+        int newVersion = Integer.parseInt(newVerStr.replace(".", ""));
 
-		// Get the version from the DB
-		MongoCursor<Document> cursor = collection.find(and(eq("key", "clarus-module"), eq("moduleID", moduleID))).iterator();
-		int oldVersion;
-		Document module = null;
-
-		if (cursor.hasNext()){
-			module = cursor.next();
-		}
-
-		if(module == null) {
-			// The module was nout found, inform the user
-			return -1;
-		}
-
-		oldVersion = module.getInteger("version");
-
-		if (newVersion > oldVersion){
-			// Update the document on the DB
-			long updated = collection.updateOne(and(eq("key", "clarus-module"), eq("moduleID", moduleID)), combine(set("file", modulePath), set("version", newVersion))).getModifiedCount();
-			return 0;
-		}
-
-		return 1;
-	}
-    
-    public int getModuleVersion(int moduleID){
-		MongoCollection<Document> collection = db.getCollection("config");
-
-		// Find all the Modules
-		MongoCursor<Document> cursor = collection.find(and(eq("key", "clarus-module"), eq("moduleID", moduleID))).iterator();
-        
+        // Get the version from the DB
+        MongoCursor<Document> cursor = collection.find(and(eq("key", "clarus-module"), eq("moduleID", moduleID)))
+                .iterator();
+        int oldVersion;
         Document module = null;
-        
-        if(cursor.hasNext()){
+
+        if (cursor.hasNext()) {
             module = cursor.next();
         }
-        
-        if(module == null){
+
+        if (module == null) {
+            // The module was nout found, inform the user
             return -1;
         }
-        
+
+        oldVersion = module.getInteger("version");
+
+        if (newVersion > oldVersion) {
+            // Update the document on the DB
+            long updated = collection.updateOne(and(eq("key", "clarus-module"), eq("moduleID", moduleID)),
+                    combine(set("file", modulePath), set("version", newVersion))).getModifiedCount();
+            return 0;
+        }
+
+        return 1;
+    }
+
+    public int getModuleVersion(int moduleID) {
+        MongoCollection<Document> collection = db.getCollection("config");
+
+        // Find all the Modules
+        MongoCursor<Document> cursor = collection.find(and(eq("key", "clarus-module"), eq("moduleID", moduleID)))
+                .iterator();
+
+        Document module = null;
+
+        if (cursor.hasNext()) {
+            module = cursor.next();
+        }
+
+        if (module == null) {
+            return -1;
+        }
+
         return module.getInteger("version");
     }
-	
-	public boolean userAuthModule(String pathname){
-		MongoCollection<Document> collection = db.getCollection("config");
-		
-		Document doc = new Document("key", "userAuthModuleConfig");
-		doc.append("path", pathname);
 
-		// Insert or update the document
-		long modified = collection.replaceOne(eq("key", "userAuthModuleConfig"), doc, new UpdateOptions().upsert(true)).getModifiedCount();
+    public boolean userAuthModule(String pathname) {
+        MongoCollection<Document> collection = db.getCollection("config");
 
-		return modified > 0;
-	}
+        Document doc = new Document("key", "userAuthModuleConfig");
+        doc.append("path", pathname);
+
+        // Insert or update the document
+        long modified = collection.replaceOne(eq("key", "userAuthModuleConfig"), doc, new UpdateOptions().upsert(true))
+                .getModifiedCount();
+
+        return modified > 0;
+    }
 
     private void processConfigurationFile() throws RuntimeException {
         // Open the file in read-only mode. This will avoid any permission problem
@@ -326,9 +338,8 @@ public class CLARUSConfDAO{
         }
     }
 
-
-	/*
-	// Get the collection of BSON documents that contain the configurations
-	MongoCollection<Document> collection = db.getCollection("config");
-	*/
+    /*
+    // Get the collection of BSON documents that contain the configurations
+    MongoCollection<Document> collection = db.getCollection("config");
+    */
 }

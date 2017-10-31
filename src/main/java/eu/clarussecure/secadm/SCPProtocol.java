@@ -12,28 +12,28 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 public class SCPProtocol extends FileTransfer {
-    
-    public SCPProtocol(){
+
+    public SCPProtocol() {
     }
 
     @Override
     public void tranferFile(String filename, String remotePath) throws CommandExecutionException {
-        try{
+        try {
             JSch jsch = new JSch();
             jsch.addIdentity(this.scpIdentifyFilePath, this.scpIdentityFilePassphrase);
-            Session session  = jsch.getSession(this.scpUserName, this.scpHostName, this.scpPort);
+            Session session = jsch.getSession(this.scpUserName, this.scpHostName, this.scpPort);
             java.util.Properties config = new java.util.Properties();
             config.put("StrictHostKeyChecking", "no");
             session.setConfig(config);
             session.connect();
             this.copyLocalToRemote(session, filename, remotePath);
-        } catch (IOException | JSchException e){
+        } catch (IOException | JSchException e) {
             CommandExecutionException ex = new CommandExecutionException("The SCP Transfer could not be completed");
             ex.initCause(e);
             throw ex;
         }
     }
-    
+
     // These two functions were extracted from the JSch examples.
     // http://www.jcraft.com/jsch/examples/ScpTo.java.html
     // https://medium.com/@ldclakmal/scp-with-java-b7b7dbcdbc85
@@ -74,7 +74,7 @@ public class SCPProtocol extends FileTransfer {
         // C0644... maybe these are the remote permisions of the file?????
         command = "C0644 " + filesize + " ";
         // Extract the filename as the substring from the last ocurrence of "/" (or "\" if Windows) +1
-        if (from.lastIndexOf(File.separator) > 0) {           
+        if (from.lastIndexOf(File.separator) > 0) {
             command += from.substring(from.lastIndexOf(File.separator) + 1);
         } else {
             command += from;
@@ -92,7 +92,7 @@ public class SCPProtocol extends FileTransfer {
         byte[] buf = new byte[1024];
         while (true) {
             int len = fis.read(buf, 0, buf.length);
-            if (len <= 0){
+            if (len <= 0) {
                 break;
             }
             out.write(buf, 0, len); //out.flush();
@@ -106,14 +106,14 @@ public class SCPProtocol extends FileTransfer {
         if (checkAck(in) != 0) {
             throw new IOException("The file content could not be sent.");
         }
-        
+
         // Close the file and the communication channel
         out.close();
         fis.close();
 
         channel.disconnect();
         session.disconnect();
-        
+
         System.out.println("The file was successfully transfered.");
     }
 
@@ -123,8 +123,10 @@ public class SCPProtocol extends FileTransfer {
         //          1 for error,
         //          2 for fatal error,
         //         -1
-        if (b == 0) return b;
-        if (b == -1) return b;
+        if (b == 0)
+            return b;
+        if (b == -1)
+            return b;
 
         if (b == 1 || b == 2) {
             StringBuffer sb = new StringBuffer();
@@ -132,8 +134,7 @@ public class SCPProtocol extends FileTransfer {
             do {
                 c = in.read();
                 sb.append((char) c);
-            }
-            while (c != '\n');
+            } while (c != '\n');
             if (b == 1) { // error
                 System.out.print(sb.toString());
             }

@@ -10,9 +10,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 
-public class SFTPProtocol extends FileTransfer{
-    
-    public SFTPProtocol(){
+public class SFTPProtocol extends FileTransfer {
+
+    public SFTPProtocol() {
     }
 
     @Override
@@ -21,7 +21,7 @@ public class SFTPProtocol extends FileTransfer{
             JSch jsch = new JSch();
             this.scpIdentityFilePassphrase = new String(System.console().readPassword());// read the password from console
             jsch.addIdentity(this.scpIdentifyFilePath, this.scpIdentityFilePassphrase);
-            Session session  = jsch.getSession(this.scpUserName, this.scpHostName, this.scpPort);
+            Session session = jsch.getSession(this.scpUserName, this.scpHostName, this.scpPort);
             java.util.Properties config = new java.util.Properties();
             config.put("StrictHostKeyChecking", "no");
             session.setConfig(config);
@@ -39,5 +39,5 @@ public class SFTPProtocol extends FileTransfer{
             throw e;
         }
     }
-    
+
 }
